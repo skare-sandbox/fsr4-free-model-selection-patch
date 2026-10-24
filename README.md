@@ -1,8 +1,12 @@
-# fsr4-reverse-engineering-efforts
+# FSR 4.1.2 free model selection patch
 
 Reverse engineering of AMD's FSR 4.1.2 `amdxcffx64.dll` (the `ffx_api` backend
 provider DLL) with the goal of full, external control over the FSR4 model
-selection — in the spirit of [OptiScaler](https://github.com/OptiScaler/OptiScaler).
+selection without the need for [Optiscaler](https://github.com/OptiScaler/OptiScaler). Big shoutout.
+
+**Important!**
+
+Forcing a model whose weights target a different GPU generation (e.g. FP8 on RDNA3 without using `DXIL_SPIRV_CONFIG="wmma_rdna3_workaround"`) may fail at shader compilation or produce visual artifacts. The provider gates exist for a reason. The patch gives you the choice; it cannot add hardware capabilities.
 
 ## TL;DR
 
@@ -14,16 +18,40 @@ GPU generation:
 FSR4_MODEL=FP8          # FSR4 (FP8 weights, RDNA4 path)
 FSR4_MODEL=INT8         # FSR4-i8 (INT8 weights, RDNA3 path)
 FSR4_MODEL=INT8_LITE    # FSR4L-i8 (INT8 lite weights)
-FSR4_MODEL=INT8_NAVI2    # FSR4-i8-2 / Navi2 (INT8, RDNA2 path)
+FSR4_MODEL=INT8_NAVI2   # FSR4-i8-2 / Navi2 (INT8, RDNA2 path)
 ```
 
 Unset or unrecognized values leave the DLL's original behaviour fully intact.
 
+## How to install
+
+### Fetch the DLL
+* Fetch the FSR 4.1.2 DLL file from a trusted source.
+* Recommended way is through the AMD windows drivers ([Download link for Adrenalin 26.10.1 WHQL](https://drivers.amd.com/drivers/whql-amd-software-adrenalin-edition-26.10.1-win11-b.exe))
+* Extract the .exe file
+* Look for the amdxcffx64.dll file under /Packages/Drivers/Display/WT6A_INF/B026676/amdxcffx64.dll
+
+### Apply the patch
+* Clone the repo
+* Copy the extracted amdxcffx64.dll file into the repo folder
+* Under the folder run the following commands:
 ```
-pip install pefile keystone-engine
+pip install pefile keystone-engine --user
 python3 tools/patch_fsr4_model.py amdxcffx64.dll amdxcffx64_patched.dll
 python3 tools/verify_patch.py     # optional: emulate & verify all gates
 ```
+
+### Apply to games
+
+* The next Proton-CachyOS version will come with an option to specify a DLL by providing a path. This will trivialize the usage of the patched DLL:
+```PROTON_FSR4_UPGRADE=/path/to/dll/amdxcffx64_patched.dll```
+* You can already try this by fetching the most recent proton-cachyos build from github actions. Must be at least this version (will be oudated fairly quickly): [proton-cachyos-11.0-20261015-slr-8-gfb07ba30](https://nightly.link/CachyOS/proton-cachyos/actions/runs/39956490617)
+* If you use anything older you have to do the following:
+   * Move the DLL file into the respective game folder (the same place where the main executable of the game is)
+   * Rename it from amdxcffx64_patched.dll to amdxcffx64.dll
+
+
+# Technical details (delivered by our humble AI overlords)
 
 ## Reverse-engineered model selection (FSR 4.1.2)
 
@@ -82,13 +110,7 @@ unknown values — all 44 cases pass.
 
 ## Status / caveats
 
-- Verified statically and via emulation; **not yet tested on real hardware**.
-- Forcing a model whose weights target a different GPU generation (e.g. FP8 on
-  RDNA3) may fail at shader compilation or produce visual artifacts — the
-  provider gates exist for a reason. The patch gives you the choice; it cannot
-  add hardware capabilities.
+- Verified statically and via emulation; **tested using a 7900xtx in various games**.
 - Gate offsets are specific to FSR 4.1.2 (`amdxcffx64.dll`, timestamp
   `0x6ac90bb5`); the patcher validates the expected prologue bytes and refuses
   to patch anything else.
-- Related: [fsr4-lite-on-rdna3-patches](https://github.com/skare-sandbox/fsr4-lite-on-rdna3-patches)
-  (previous GPU-spoofing approach).
