@@ -8,6 +8,8 @@ selection without the need for [Optiscaler](https://github.com/OptiScaler/OptiSc
 
 Forcing a model whose weights target a different GPU generation (e.g. FP8 on RDNA3 without using `DXIL_SPIRV_CONFIG="wmma_rdna3_workaround"`) may fail at shader compilation or produce visual artifacts. The provider gates exist for a reason. The patch gives you the choice; it cannot add hardware capabilities.
 
+Tested all models using a 7900xtx in various games using Fedora 44.
+
 ## TL;DR
 
 `tools/patch_fsr4_model.py` patches the DLL so that the environment variable
@@ -109,8 +111,6 @@ mock `getenv`) and asserts the expected outcome for unset/empty/each alias and
 unknown values — all 44 cases pass.
 
 ## Status / caveats
-
-- Verified statically and via emulation; **tested using a 7900xtx in various games**.
 - Gate offsets are specific to FSR 4.1.2 (`amdxcffx64.dll`, timestamp
   `0x6ac90bb5`); the patcher validates the expected prologue bytes and refuses
   to patch anything else.
