@@ -12,7 +12,7 @@ Tested all models using a 7900xtx in various games using Fedora 44.
 
 ## Use cases
 
-* using a lighter weight model to get additional performance (for example INT8_LITE runs about 10-15% faster than INT8 on RDNA3 on 4K monitors)
+* using a lighter weight model to get additional performance (for example INT8_LITE runs about 10-15% faster than INT8 on RDNA3 and 4K)
 * using a heavier model for better quality (especially in motion)
 * being able to use Nvidia Reflex without losing access to FSR4 (reflex on AMD requires spoofing which makes the new DLL's fall back to FSR3 by default)
 
@@ -27,7 +27,7 @@ FSR4_MODEL=FP8          # FSR4 (FP8 weights, RDNA4 path)
 FSR4_MODEL=INT8         # FSR4-i8 (INT8 weights, RDNA3 path)
 FSR4_MODEL=INT8_LITE    # FSR4L-i8 (INT8 lite weights)
 FSR4_MODEL=INT8_NAVI2   # FSR4-i8-2 / Navi2 (INT8, RDNA2 path)
-FSR4_MODEL=NONE         # "no FSR4", let the driver use FSR 3.1.6, alias: FSR3
+FSR4_MODEL=NONE         # "no FSR4", fallback to the default (FSR 3.1.6), alias: FSR3
 ```
 
 FSR 3.1.6 is registered as its own provider (`ffxProvider_FSR3Upscale`) inside
@@ -39,8 +39,8 @@ The patch also covers the DLL's **frame-generation** providers with a second
 variable:
 
 ```
-FSR_FG_MODE=ML          # ML Frame Generation 4.0.2 (aliases: MLFG, MLFG4, FSR4)
-FSR_FG_MODE=FSR3        # classic FSR 3.1.7 frame generation (aliases: FSR31, FSR3.1, NONE)
+FSR_FG_MODE=MLFG        # ML Frame Generation 4.0.2 (aliases: ML, MLFG4, FSR4)
+FSR_FG_MODE=FSR3        # classic FSR 3.1.7 frame generation (aliases: FSR31, FSR3.1)
 ```
 
 `FSR_FG_MODE` selects the frame-generation provider *within this DLL* and is
