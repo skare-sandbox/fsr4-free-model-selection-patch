@@ -12,7 +12,7 @@ Tested all models using a 7900xtx in various games using Fedora 44.
 
 ## Use cases
 
-* using a lighter weight model to get additional performance (for example INT8_LITE runs about 10-15% faster on RDNA3 on 4K monitors)
+* using a lighter weight model to get additional performance (for example INT8_LITE runs about 10-15% faster than INT8 on RDNA3 on 4K monitors)
 * using a heavier model for better quality (especially in motion)
 * being able to use Nvidia Reflex without losing access to FSR4 (reflex on AMD requires spoofing which makes the new DLL's fall back to FSR3 by default)
 
