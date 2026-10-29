@@ -27,17 +27,13 @@ FSR4_MODEL=FP8          # FSR4 (FP8 weights, RDNA4 path)
 FSR4_MODEL=INT8         # FSR4-i8 (INT8 weights, RDNA3 path)
 FSR4_MODEL=INT8_LITE    # FSR4L-i8 (INT8 lite weights)
 FSR4_MODEL=INT8_NAVI2   # FSR4-i8-2 / Navi2 (INT8, RDNA2 path)
-FSR4_MODEL=FSR3         # classic FSR 3.1.6 upscaler (also bundled in this DLL)
-FSR4_MODEL=NONE         # alias for FSR3: "no FSR4", let the driver use FSR 3.1.6
+FSR4_MODEL=NONE         # "no FSR4", let the driver use FSR 3.1.6, alias: FSR3
 ```
 
 FSR 3.1.6 is registered as its own provider (`ffxProvider_FSR3Upscale`) inside
 the same `amdxcffx64.dll` and is what the driver falls back to on GPUs that
 cannot run any FSR4 model. Forcing it explicitly is useful for quality
-comparisons or in case a game/preset misbehaves with the ML models. `NONE` is
-provided as an intuitive alias: since the variable is named `FSR4_MODEL`,
-`FSR4_MODEL=NONE` reads as "no FSR4" — and since FSR 3.1.6 is the only other
-upscaler in this DLL, that means FSR3.
+comparisons or in case a game/preset misbehaves with the ML models.
 
 The patch also covers the DLL's **frame-generation** providers with a second
 variable:
@@ -48,11 +44,10 @@ FSR_FG_MODE=FSR3        # classic FSR 3.1.7 frame generation (aliases: FSR31, FS
 ```
 
 `FSR_FG_MODE` selects the frame-generation provider *within this DLL* and is
-independent of Proton-CachyOS's `MLFG_UPGRADE` (which controls which driver
-DLL gets loaded); the two do not collide. Note that the ML frame-generation
-swapchain gate natively requires RDNA4 (family 0x96/0x98 checks) — forcing it
-on older GPUs still needs the vkd3d-proton WMMA workarounds, same as the
-upscaler FP8/INT8 models.
+independent of Proton-CachyOS's `MLFG_UPGRADE`. Note that the ML frame-generation
+swapchain gate natively requires RDNA4. Forcing it
+on older GPUs still needs the WMMA workarounds, same as the
+upscaler FP8 models.
 
 Unset or unrecognized values leave the DLL's original behaviour fully intact.
 
