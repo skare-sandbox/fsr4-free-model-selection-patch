@@ -39,10 +39,20 @@ provided as an intuitive alias: since the variable is named `FSR4_MODEL`,
 `FSR4_MODEL=NONE` reads as "no FSR4" — and since FSR 3.1.6 is the only other
 upscaler in this DLL, that means FSR3.
 
-Note: this list covers **all upscaler models** the DLL provides. The DLL also
-bundles frame-generation providers (ML Frame Generation 4.0.2 and FSR Frame
-Generation / SwapChain 3.1.7), which are separate effect types and are not
-affected by this patch.
+The patch also covers the DLL's **frame-generation** providers with a second
+variable:
+
+```
+FSR_FG_MODE=ML          # ML Frame Generation 4.0.2 (aliases: MLFG, MLFG4, FSR4)
+FSR_FG_MODE=FSR3        # classic FSR 3.1.7 frame generation (aliases: FSR31, FSR3.1, NONE)
+```
+
+`FSR_FG_MODE` selects the frame-generation provider *within this DLL* and is
+independent of Proton-CachyOS's `MLFG_UPGRADE` (which controls which driver
+DLL gets loaded); the two do not collide. Note that the ML frame-generation
+swapchain gate natively requires RDNA4 (family 0x96/0x98 checks) — forcing it
+on older GPUs still needs the vkd3d-proton WMMA workarounds, same as the
+upscaler FP8/INT8 models.
 
 Unset or unrecognized values leave the DLL's original behaviour fully intact.
 
@@ -90,6 +100,14 @@ The DLL registers four FSR4 providers plus the classic FSR3 upscaler with the
 | `ffxProvider_FSR4_Int8_Navi2` | `FSR4-i8-2` | rva `0x4f6b5e8` | `0x1135f0` | RDNA2 / Navi2x (family 0x8f)  |
 | `ffxProvider_FSR3Upscale` | `FSR3` (version string `3.1.6`) | rva `0x4f6b488` | `0x110a10` | capability flag test, any GPU |
 
+Frame generation (controlled by `FSR_FG_MODE`):
+
+| Provider       | version | iface vtable | `IsSupported` gate | native check                    |
+|----------------|---------|--------------|--------------------|---------------------------------|
+| `ffxProvider_MLFrameGeneration` | 4.0.2 | rva `0x4f676b0` | `0xe6e90` | driver capability check + family |
+| `ffxProvider_MLFrameGenerationSwapChain` | 4.0.2 | rva `0x4f679e8` | `0xeeda0` | family `0x98` (RDNA4) only |
+| `ffxProvider_Fsr3FrameGeneration` / `...SwapChain` | 3.1.7 | rva `0x23e4c0` / `0x4f67950` | `0x71b0` (shared) | always supported (`mov al,1; ret`) |
+
 Each gate parses the adapter description (helper at `0x101190`, fed by DXGI)
 into a small struct, then compares:
 
@@ -130,8 +148,12 @@ override — hence this patch.
    ASLR-safe.
 
 `tools/verify_patch.py` emulates each patched gate with Unicorn (including a
-mock `getenv`) and asserts the expected outcome for unset/empty/each alias and
-unknown values (65 cases including the FSR3 gate) — all cases pass.
+mock `getenv`) and asserts the expected outcome for unset/empty/each alias,
+unknown values and cross-variable independence (FSR4_MODEL must not affect the
+frame-generation gates and vice versa) — 98 cases, all pass. Forcing ML
+enables both ML frame-generation gates (frame generation + swapchain), and
+forcing FSR3 enables the shared Fsr3 frame-generation gate, mirroring how the
+providers pair up at runtime.
 
 ## Status / caveats
 - Gate offsets are specific to FSR 4.1.2 (`amdxcffx64.dll`, timestamp
