@@ -28,12 +28,21 @@ FSR4_MODEL=INT8         # FSR4-i8 (INT8 weights, RDNA3 path)
 FSR4_MODEL=INT8_LITE    # FSR4L-i8 (INT8 lite weights)
 FSR4_MODEL=INT8_NAVI2   # FSR4-i8-2 / Navi2 (INT8, RDNA2 path)
 FSR4_MODEL=FSR3         # classic FSR 3.1.6 upscaler (also bundled in this DLL)
+FSR4_MODEL=NONE         # alias for FSR3: "no FSR4", let the driver use FSR 3.1.6
 ```
 
 FSR 3.1.6 is registered as its own provider (`ffxProvider_FSR3Upscale`) inside
 the same `amdxcffx64.dll` and is what the driver falls back to on GPUs that
 cannot run any FSR4 model. Forcing it explicitly is useful for quality
-comparisons or in case a game/preset misbehaves with the ML models.
+comparisons or in case a game/preset misbehaves with the ML models. `NONE` is
+provided as an intuitive alias: since the variable is named `FSR4_MODEL`,
+`FSR4_MODEL=NONE` reads as "no FSR4" — and since FSR 3.1.6 is the only other
+upscaler in this DLL, that means FSR3.
+
+Note: this list covers **all upscaler models** the DLL provides. The DLL also
+bundles frame-generation providers (ML Frame Generation 4.0.2 and FSR Frame
+Generation / SwapChain 3.1.7), which are separate effect types and are not
+affected by this patch.
 
 Unset or unrecognized values leave the DLL's original behaviour fully intact.
 

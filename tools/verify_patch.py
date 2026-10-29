@@ -162,6 +162,7 @@ def main():
         ("FSR3",        only("FSR3")),
         ("fsr31",       only("FSR3")),
         ("FSR3.1",      only("FSR3")),
+        ("none",        only("FSR3")),
         ("BOGUS",       {l: 0 for l in all_labels}),
     ]
     for value, expected in cases:

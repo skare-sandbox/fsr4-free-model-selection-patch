@@ -21,7 +21,7 @@ FSR4_MODEL values (case-insensitive):
   INT8 | I8           -> force the INT8 model (RDNA3 weights)
   INT8_LITE | LITE    -> force the INT8 lite model
   INT8_NAVI2 | NAVI2  -> force the INT8 Navi2 (RDNA2) model
-  FSR3 | FSR31        -> force the classic FSR 3.1.6 upscaler
+  FSR3 | FSR31 | FSR3.1 | NONE -> force the classic FSR 3.1.6 upscaler
   unset / empty       -> original behaviour
 
 Implementation:
@@ -65,7 +65,7 @@ GATES = [
      "sub rsp, 0x48\nmov rax, rdx", b"\x48\x83\xEC\x48\x48\x8B\xC2", 7),
     (0x1135F0, "INT8_NAVI2", ["INT8_NAVI2", "NAVI2"],
      "sub rsp, 0x48\nmov rax, rdx", b"\x48\x83\xEC\x48\x48\x8B\xC2", 7),
-    (0x110A10, "FSR3",       ["FSR3", "FSR31", "FSR3.1", "FSR31"],
+    (0x110A10, "FSR3",       ["FSR3", "FSR31", "FSR3.1", "NONE"],
      "and edx, 0xff0000",          b"\x81\xE2\x00\x00\xFF\x00",         6),
 ]
 
