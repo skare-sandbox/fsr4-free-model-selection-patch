@@ -16,7 +16,7 @@ Tested all models using a 7900xtx in various games using Fedora 44.
 * using a heavier model for better quality (especially in motion)
 * being able to use Nvidia Reflex without losing access to FSR4 (reflex on AMD requires spoofing which makes the new DLL's fall back to FSR3 by default)
 
-## TL;DR
+## How to use it
 
 `tools/patch_fsr4_model.py` patches the DLL so that the environment variable
 `FSR4_MODEL` forces a specific FSR4 provider/model regardless of the detected
