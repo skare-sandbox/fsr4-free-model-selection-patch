@@ -47,7 +47,7 @@ FSR_FG_MODE=FSR3        # classic FSR 3.1.7 frame generation (aliases: FSR31, FS
 independent of Proton-CachyOS's `MLFG_UPGRADE`. Note that the ML frame-generation
 swapchain gate natively requires RDNA4. Forcing it
 on older GPUs still needs the WMMA workarounds, same as the
-upscaler FP8 models.
+upscaler FP8 model.
 
 Unset or unrecognized values leave the DLL's original behaviour fully intact.
 
