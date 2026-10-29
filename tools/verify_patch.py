@@ -26,6 +26,7 @@ GATES = {
     0x112360: ("INT8", 0x101530),
     0x112B80: ("INT8_LITE", 0x101190),
     0x1135F0: ("INT8_NAVI2", 0x101190),
+    0x110A10: ("FSR3", None),
 }
 
 # synthetic GPU info structs as produced by the DLL's own 0x101190 parser:
@@ -100,7 +101,9 @@ def emulate(dll_path, gate_rva, orig_stop, env_value, expect_ret):
     # with a marker value.
     # For verification we start at the gate entry and stop at the first call
     # into 0x101190 (original path) OR at thunk ret.
-    STOP_ORIG_CALL = IMAGE_BASE + orig_stop
+    # The FSR3 gate (0x110a10) performs no calls at all: it tests rdx's flag
+    # bits in registers, so its original path completes and returns directly.
+    STOP_ORIG_CALL = IMAGE_BASE + orig_stop if orig_stop else None
 
     stop_reason = {}
 
@@ -108,10 +111,12 @@ def emulate(dll_path, gate_rva, orig_stop, env_value, expect_ret):
         stop_reason["addr"] = address
         uc.emu_stop()
 
-    mu.hook_add(UC_HOOK_CODE, hook_stop, begin=STOP_ORIG_CALL, end=STOP_ORIG_CALL + 1)
+    if STOP_ORIG_CALL is not None:
+        mu.hook_add(UC_HOOK_CODE, hook_stop, begin=STOP_ORIG_CALL, end=STOP_ORIG_CALL + 1)
 
-    # rdx = non-null dummy (gates test rdx)
-    DUMMY = 0x610000000
+    # rdx = non-null dummy (gates test rdx). bit 16 is set so the FSR3 gate's
+    # original path (which needs no COM mocks) deterministically returns 1.
+    DUMMY = 0x610010000
     mu.mem_map(DUMMY, 0x1000)
     mu.reg_write(UC_X86_REG_RDX, DUMMY)
 
@@ -126,11 +131,11 @@ def emulate(dll_path, gate_rva, orig_stop, env_value, expect_ret):
     try:
         mu.emu_start(START, RET_MAGIC, timeout=2_000_000)
     except UcError as e:
-        if stop_reason.get("addr") == STOP_ORIG_CALL:
+        if STOP_ORIG_CALL is not None and stop_reason.get("addr") == STOP_ORIG_CALL:
             return "fell-through-to-original", None
         raise
 
-    if stop_reason.get("addr") == STOP_ORIG_CALL:
+    if STOP_ORIG_CALL is not None and stop_reason.get("addr") == STOP_ORIG_CALL:
         return "fell-through-to-original", None
     eax = mu.reg_read(UC_X86_REG_EAX) & 0xFF
     return "returned", eax
@@ -138,18 +143,26 @@ def emulate(dll_path, gate_rva, orig_stop, env_value, expect_ret):
 
 def main():
     failures = 0
+    all_labels = [l for l, _ in GATES.values()]
+    def only(want):
+        return {l: (1 if l == want else 0) for l in all_labels}
+    orig_expect = {l: "orig" for l in all_labels}
+    orig_expect["FSR3"] = 1
     cases = [
-        (None,          {l: "orig" for l, _ in GATES.values()}),
-        ("",            {l: "orig" for l, _ in GATES.values()}),
-        ("FP8",         {"FP8": 1, "INT8": 0, "INT8_LITE": 0, "INT8_NAVI2": 0}),
-        ("fsr4",        {"FP8": 1, "INT8": 0, "INT8_LITE": 0, "INT8_NAVI2": 0}),
-        ("INT8",        {"FP8": 0, "INT8": 1, "INT8_LITE": 0, "INT8_NAVI2": 0}),
-        ("i8",          {"FP8": 0, "INT8": 1, "INT8_LITE": 0, "INT8_NAVI2": 0}),
-        ("INT8_LITE",   {"FP8": 0, "INT8": 0, "INT8_LITE": 1, "INT8_NAVI2": 0}),
-        ("lite",        {"FP8": 0, "INT8": 0, "INT8_LITE": 1, "INT8_NAVI2": 0}),
-        ("INT8_NAVI2",  {"FP8": 0, "INT8": 0, "INT8_LITE": 0, "INT8_NAVI2": 1}),
-        ("navi2",       {"FP8": 0, "INT8": 0, "INT8_LITE": 0, "INT8_NAVI2": 1}),
-        ("BOGUS",       {"FP8": 0, "INT8": 0, "INT8_LITE": 0, "INT8_NAVI2": 0}),
+        (None,          dict(orig_expect)),
+        ("",            dict(orig_expect)),
+        ("FP8",         only("FP8")),
+        ("fsr4",        only("FP8")),
+        ("INT8",        only("INT8")),
+        ("i8",          only("INT8")),
+        ("INT8_LITE",   only("INT8_LITE")),
+        ("lite",        only("INT8_LITE")),
+        ("INT8_NAVI2",  only("INT8_NAVI2")),
+        ("navi2",       only("INT8_NAVI2")),
+        ("FSR3",        only("FSR3")),
+        ("fsr31",       only("FSR3")),
+        ("FSR3.1",      only("FSR3")),
+        ("BOGUS",       {l: 0 for l in all_labels}),
     ]
     for value, expected in cases:
         for gate_rva, (label, orig_stop) in GATES.items():

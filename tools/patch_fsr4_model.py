@@ -10,16 +10,18 @@ Providers and their IsSupported gates (RVAs, FSR 4.1.2 amdxcffx64.dll):
 
   Provider      iface vtable  gate RVA   native GPU check
   ------------  ------------  --------   --------------------------------
-  FSR4 (FP8)    0x4f6b450     0x1108e0   RDNA4 (gfx12xx)
-  FSR4-i8       0x4f6b4e8     0x112360   RDNA3 (gfx11xx)
-  FSR4L-i8      0x4f6b588     0x112b80   RDNA3.5 (family 0x96)
-  FSR4-i8-2     0x4f6b5f8     0x1135f0   RDNA2 / Navi2x (family 0x8f)
+  FSR4 (FP8)    0x4f6b440     0x1108e0   RDNA4 (gfx12xx)
+  FSR4-i8       0x4f6b4d8     0x112360   RDNA3 (gfx11xx)
+  FSR4L-i8      0x4f6b580     0x112b80   RDNA3.5 (family 0x96)
+  FSR4-i8-2     0x4f6b5e8     0x1135f0   RDNA2 / Navi2x (family 0x8f)
+  FSR3 (3.1.6)  0x4f6b488     0x110a10   capability flag (bit 16), any GPU
 
 FSR4_MODEL values (case-insensitive):
   FSR4 | FP8          -> force the FP8 model (RDNA4 weights)
   INT8 | I8           -> force the INT8 model (RDNA3 weights)
   INT8_LITE | LITE    -> force the INT8 lite model
   INT8_NAVI2 | NAVI2  -> force the INT8 Navi2 (RDNA2) model
+  FSR3 | FSR31        -> force the classic FSR 3.1.6 upscaler
   unset / empty       -> original behaviour
 
 Implementation:
@@ -63,6 +65,8 @@ GATES = [
      "sub rsp, 0x48\nmov rax, rdx", b"\x48\x83\xEC\x48\x48\x8B\xC2", 7),
     (0x1135F0, "INT8_NAVI2", ["INT8_NAVI2", "NAVI2"],
      "sub rsp, 0x48\nmov rax, rdx", b"\x48\x83\xEC\x48\x48\x8B\xC2", 7),
+    (0x110A10, "FSR3",       ["FSR3", "FSR31", "FSR3.1", "FSR31"],
+     "and edx, 0xff0000",          b"\x81\xE2\x00\x00\xFF\x00",         6),
 ]
 
 KS = Ks(KS_ARCH_X86, KS_MODE_64)
@@ -281,7 +285,7 @@ def main():
     print("section %s: rva 0x%X vsize 0x%X raw 0x%X/0x%X"
           % (SECTION_NAME.decode(), sec_rva, vsize, raw_ptr, raw_size))
     print("wrote %s (%d bytes)" % (args.output, len(data)))
-    print("usage: set %s=FP8|INT8|INT8_LITE|INT8_NAVI2 to force a model" % ENV_NAME)
+    print("usage: set %s=FP8|INT8|INT8_LITE|INT8_NAVI2|FSR3 to force a model" % ENV_NAME)
 
 
 if __name__ == "__main__":
